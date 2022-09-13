@@ -1,0 +1,458 @@
+---------------------------------------------------------EFFET--------------------------------------------------------
+    - valeur (int/string)(Correspond à la valeur de l'effet. Le type de la variable dépend du type d'effet.)
+    - durée (int)(Correspond à la durée restante de l'effet en heure. Celui-ci ce supprime une fois cette durée écoulée. Un effet avec une durée de -1 ne se supprimera pas tout seul et un effet avec une durée de -2 est définitif(il n'est même pas ajouter à la liste des effets actifs).)
+    - dépasser le maximum? (bool)(Si TRUE, autorise les effets de type BUFF à dépasser leur limite de caractéristique. Uniquement pour les effets de type 0(BUFF))
+	- conditions (string)(Conditions pour que l'effet s'ajoute.)
+	- contexte (string)('c' si l'effet ne s'applique qu'en combat (la durée est alors en tours) ou 'n' s'il s'applique n'importe quand)
+	- id-effet (int)(Numéro unique à chaque effet, permet de différencier les effets pour faciliter leur suppresion.)
+
+exemples:
+BUFF
+	/\"buff" "duree" "caract" "bonus/malus" "Dépasser le maximum ?" "conditions" "id-effet"
+	buff 24 adresse +3 false [] 64444648
+	buff -1 vitesse +2 true [] 4588485
+INTERDICTION
+	/\"interdiction" "duree" "'operateur''action' 'id'" "conditions" "id-effet"
+	interdiction 3 +equip bouclier_fer [] 847676
+	interdiction -1 -entrer paradis [] 4367367
+CHANGEMENT D'ETAT
+	/\"etat" "duree" "ID etat" "conditions" "id-effet"	
+	etat 24 2 [] 848484
+TELEPORTATION
+	/\"teleportation" "coordonnees x,y" "conditions"
+	teleportation 45,78 []
+OBJET
+	/\"objet" "operation""id objet" "quantite" "conditions"
+	objet +bouclier_sacree 1 []
+	objet -cagoule_de_cambrioleur 2 []
+ACTIONS
+	/\"action" "duree" "operation""id action" "conditions" "id-effet"
+	action -2 +coup_de_bouclier_de_bois [] 11541946
+	action 24 -coup_de_boule_magique [] 65445684
+HOSTILITES
+	/\"hostilite" "duree" "operation""id hostilite" "conditions" "id-effet"
+	hostilite -1 +azog_le_maudit [] 4544484454
+	hostilite 8760 +royaume_du_nord [] 478497979
+EMPLACEMENTS
+	/\"emplacement" "operation""id_emplacement" "conditions" 
+	emplacement +pied_droit []
+	emplacement -tete []
+QUETES
+	/\"quete" "operation" "id_quete" "conditions"
+	quete ajouter chassse_au_poulet []
+	quete retirer chasse_au_escargot []
+	quete achever les_poignards_perdus []
+
+--------------------------------------------------------CONDITION--------------------------------------------------------
+exemples:
+force < 18
+adresse > 5 
+charisme = 11
+poss cle_sacree 
+poss piece_d_or = 1000
+poss piece_d_or > 1000
+poss piece_d_or < 10
+poss #relique > 10
+!equip #objet_sacree
+etat 3
+in 45,85||poss parchemin_sacree
+in #foret
+quete purge_des_reperes_du_nord 0
+quete purge_des_reperes_du_nord 2
+objectif les_poignards_perdus ramasser_poignards 2
+
+------------------------------------------------------INTERDICTION------------------------------------------------------
+exemples:
+poss cle_sacree
+equip bouclier_sacree
+entrer 44,26
+unposs relique_diabolique
+unequip menottes
+sortir #prison
+rencontrer loup_affame
+ramasser x
+jeter x
+utiliser x
+
+-------------------------------------------------------REGION--------------------------------------------------------
+- 1km*1km
+- peut contenir des objets (chachés ou non)
+- peut contenir des pnj (cachés ou non)
+- peut contenir des portails (chachés ou non)
+
+------------------------------------------------------CARACTERES INTERDITS----------------------------------------------
+region.id: , * # |  []    empty  rectangle grid
+region.nom: Aucune
+creature.id: * #  | [] !PLAYER
+objet.id: * #  | []
+action.id: * # |  []
+effet: /
+
+
+-----------------------------------------------------EXPRESSIONS REGULIERES-----------------------------------------------
+trouver idCreature: ^[a-zA-Z_]*[^#]
+
+-----------------------------------------------------MOTS CLES----------------------------------------------------------
+DISPONIBLES POUR:
+- conditions de type poss,equip,in
+- interdictions
+- objectifs: pour les lieux et les objectifs concernant des objets, des creatures, des lieux.
+
+--------------------------------------------------------DEPLACEMENT&RENCONTRES-------------------------------------------------------
+1 - choix direction (N,NE,E,SE,S,SO,O,NO)
+2 - choix temps (x minutes)
+3 - mode déplacement : affichage d'informations sur la région visitée
+4 - interruption : arrêt du déplacement
+  - temps écoulé : arrêt du déplacement
+
+-> - ABSOLU: calcul du score de malus de déplacement = (poids/poidsMax*1.5) + fatigue/50	
+   - RELATIF: calcul du score de malus de déplacement = ((poids/poidsMax*20)*vitesse/100) + ((fatigue/100*40)*vitesse/100)
+-> calcul de la vitesse réelle (km/h) = (vitesse(km/h) - malusDeplacement) * facteurRelief
+-> calcul de la distance parcourable (en zone donc km) = vitesseReel(km/h) * temps(h)
+-> calcul du temps pour parcourir 1 km (une zone) = 60/vitesseReel(km/h)
+-> calcul de la fatigue (+4/h) = (tempsPourParcourirUneZone(min)/60)*4
+
+-> calcul de la fréquence de rencontre = tempsPourParcourirUneZone(min)/720
+
+CHOIX DE LA CREATURE:
+	- vérification des interdictions de rencontrer une créature spécifique
+	- vérification des niveaux (voir réglages)
+
+---------------------------------------------------------TEXTES-----------------------------------------------------
+entrer: lorsque le joueur entre dans une région
+lieu: lieu dans lequel se trouve le joueur
+heure: soit jour soit nuit
+emplacement: emplacement exact de la région dans laquelle le joueur se trouve
+rencontre: lorsque le joueur rencontre (apercoit) une créature
+creature: creature concernée par une action
+action: lorsque le joueur effectue une action
+cible: cible d'une action, pour les buffs la valeur est "!PLAYER" si la cible est le joueur
+auteur: auteur de l'action ou de l'attaque
+fuite_creature: lorsqu'une créature s'enfuit
+buff: lorsqu'on applique un buff à une créature
+operation: s'il s'agit d'une perte ou d'un gain
+caract: caractéristique concerné par un buff
+
+exemples:
+entrer lieu heure emplacement
+rencontre creature lieu heure
+action auteur cible action lieu heure
+action_ratee auteur cible action lieu heure
+esquive cible action lieu heure
+fuite creature lieu heure
+fuite_echec creature lieu heure
+buff cible operation caract lieu heure
+mort cible lieu heure
+incantation auteur cible action lieu heure
+
+
+Variables:
+%auteur: auteur d'une action
+%cible: cible d'une action
+%action: action utilisé
+%caract: caractéristique concerné
+%valeur: valeur d'un buff
+%lieu: localisation du personnage
+%duree: durée d'une incatation
+
+
+--------------------------------------------------------BATIMENTS/CAVERNES----------------------------------------------
+- peut contenir des objets (cachés ou non)
+- peut contenir des pnjs (cachés ou non)
+
+-------------------------------------------------------PNJ------------------------------------------------------------
+- tout comme une créature
+MAIS:
+- peut donner des quêtes
+- peut être marchand
+
+---------------------------------------------------------QUETES------------------------------------------------------
+- nécessitent de remplir un OU plusieurs objectifs pour être terminées.
+OBJECTIFS:
+	- ramasser une certaine quantité d'un objet (ramasser epee_en_bois 10 foret_maudite *)
+	- se rendre dans une certaine zone (entrer foret_interdite 0 nuit)
+	- tuer tel monstre un certain nombre de fois (tuer bandit 5 * nuit)
+	- parler à un pnj (parler azog 1 jour)
+
+
+exemple: 
+~La purge des repères du nord: 
+	Le héros doit se rendre dans les plaines ardentes ou dans les steppes de feu, tuer 10 bandits, ramasser la tête du chef Gringard et la remettre au gouverneur du nord sans n'avoir tuer aucun garde pendant la quête. 
+	Il doit aller lui parler après avoir fait toutes les étapes nécessaires avant. Il a 2 semaines pour réaliser cette quête. Si il la réussi, il gagne 1000 pièces d'or, s'il la rate les soldats du nord deviennent hostiles envers lui.
+
+	purge_des_reperes_du_nord = Quete():
+		nom = 'La purge des repères du nord'
+		id = 'purge_des_reperes_du_nord'
+		objectifs = [
+			Objectif(),
+				id = 'tuer_gardes'
+				etat = 0
+				conditionsAchevement = []
+				objectif = 'tuer #gardes_du_nord 0 * *'
+				ordreLancement = []
+				ordreAchevement = ['parler_gouverneur']
+			Objectif(),
+				id = 'entrer_region_concernees'
+				etat = 0
+				conditionsAchevement = []
+				objectif = 'entrer plaines_ardentes 1 *'
+				ordreLancement = []
+				ordreAchevement = []
+			Objectif(),
+				id = 'entrer_region_concernees'
+				etat = 0
+				conditionsAchevement = []
+				objectif = 'entrer steppes_de_feu 1 *'
+				ordreLancement = []
+				ordreAchevement = []
+			Objectif(),
+				id = 'tuer_bandits'
+				etat = 0
+				conditionsAchevement = []
+				objectif = 'tuer bandits 10 #zone_ardentes *'
+				ordreLancement = ['entrer_region_concernees']
+				ordreAchevement = ['entrer_region_concernees']
+			Objectif(),
+				id = 'ramasser_tete'
+				etat = 0
+				conditionsAchevement = []
+				objectif = 'ramasser tete_chef_gringard 1 steppes_de_feu *'
+				ordreLancement = ['entrer_region_concernees']
+				ordreAchevement = ['entrer_region_concernees']
+			Objectif(),
+				id = 'parler_gouverneur'
+				etat = 0
+				conditionsAchevement = [poss tete_chef_gringard]
+				objectif = 'parler gouverneur_du_nord 1 *'
+				ordreLancement = ['tuer_bandits','ramasser_tete']
+				ordreAchevement = ['tuer_bandits','ramasser_tete']
+		objectifsAchevement = ['parler_gouverneur','tuer_gardes']
+		conditionsLancement = []
+		conditionsAchevement = []
+		effetsSucces = ['objet +piece_d_or 1000 []']
+		effetsEchec = ['hostilite -1 +#royaume_du_nord [] 4884494448494]
+		tempsRestant = 336 
+
+	les textes:
+		/\ parler-quete pnj quete objectif_en_cours
+		- parler-quete gouverneur_du_nord purge_des_reperes_du_nord entrer-plaines-ardentes
+		- parler-quete gouverneur_du_nord purge_des_reperes_du_nord briefing
+		- parler-quete gouverneur_du_nord purge_des_reperes_du_nord tuer-bandit-10
+
+
+------------------------------------------------------------PORTAILS---------------------------------------------------
+-Objet qui représente de manière général une 'porte' qui mène d'un emplaceement à un autre. Par exemple, il peut être utilisé comme étant une porte menant vers l'intérieur 
+ d'une auberge (qui est en fait une région à part entière mais le joueur ne se rend pas compte de la taille de l'auberge) ou tout simplement un portail magique.
+
+-------------------------------------------------------------FOUILLER----------------------------------------------------
+- 3 types de fouilles: - fouille rapide (5min)
+					   - fouille approfondie (15min)
+					   - fouille minutieuse (30min)
+- jet en fonction: - du type de fouille (rapide: 1 - approfondie: 2 - minutieuse: 3)
+					- de l'intelligence
+					- du jet de difficulté pour chaque élément
+- formule: (intelligence max/intelligence)*((-0.5*typeFouille)+2.5)*difficulté
+
+-----------------------------------------------------------------TROQUER-------------------------------------------------------
+- une liste des articles que le joueur veut acheter 
+- une liste des articles que le joueur veut vendre 
+- calcul des valeurs des deux listes 
+POUR FAIRE UNE OFFRE:
+-> si vListeAcheter =< vListeVendre:
+		-> pnj accepte
+POUR LA NEGOCIATION:
+- 3 offres maximum
+-> si ((intelligence/intelligenceMax*20)+(charisme/charismeMax*20))/2 < (PrixAchat-PrixVente)/PrixAchat*100:
+	-> pnj refuse
+-> si ((intelligence/intelligenceMax*20)+(charisme/charismeMax*20))/2 >= (PrixAchat-PrixVente)/PrixAchat*100:
+	-> pnj accepte
+
+----------------------------------------------------------------COMBAT-----------------------------------------------------------
+					Fonctionnement des tours
+Récupération dans une liste de toutes les créatures découvertes
+Def de l'ordre d'action en fonction de leur courage (insertion dans une liste des créatures de manière ordonnée avec une liste associée à chaque créature contenant des données sur le combat)
+Boucle de parcours sur la liste:
+	SI HOSTIL <= 1:
+		Fuite de la créature
+	SI HOSTIL == 2 && enCombatAvec != vide:
+		Fuite de la créature
+	SI HOSTIL == 4 && enCombatAvec != vide:
+		Attaque enCombatAvec 
+	SI HOSTIL == 5:
+		Parcours la liste:
+			SI amis avec créature:
+				ajout de la créature dans la liste amis
+		SI liste amis == 1: 
+			enCombatAvec = creatureAmis.enCombatAvec
+		SI liste amis > 1:
+			enCombatAvec = 1ereCreatureAmis.enCombatAvec
+		SI enCombatAvec != vide:
+			Attaque enCombatAvec
+	SI HOSTIL == 6:
+		Attaque joueur
+	SI HOSTIL == 7:
+		enCombatAvec = tout le monde
+		Attaque enCombatAvec
+
+					Fonctionnement de la fuite
+ennemis = len(personnage.enCombatAvec)
+fuite = True
+i = 0
+while i < ennemis
+	if nbraleatoire(1-20) > personnage.adresse:
+		fuite = False
+if fuite = True:
+	direction = direction au hasard
+	on enlève la créature des enCombatAvec des autres créatures
+	on supprime la créature de la région
+	on supprime la créature de la liste des créatures
+	on l'ajoute à la région adjacente dans la bonne direction à celle-ci
+	on vide la cible
+	on vide enCombatAvec
+
+					Sélection d'une action
+sortie = False
+while sortie == False:
+	if sortIncant == '':
+		if strategieDef == 0 || (strategieDef == 1 && pvRestant > 20%) || (strategieDef == 1 && aucun sorts de soins):
+			attaque
+		elif strategieDef == 1:
+			soin
+		sortie = True
+	elif sortIncant != '':
+		tIncantRestant -= 1
+		if tIncantRestant == 0:
+			if sortIncant.cible == 0
+				creature + sortIncant.effets
+			elif sortIncant.cible == 1 && cible vivante:
+				cible + sortIncant.effets
+			sortIncant = ''
+		elif tIncantrestant > 0:
+			if sortIncant.cible == 1 && cible morte:
+				tIncantRestant = 0
+				sortIncant = ''
+			
+
+					Sélection d'une cible
+SI enCombatAvec == 1:
+	cible = enCombatAvec[0].id
+SI enCombatAvec > 1:
+	SI cible == vide OU strategieOff == 3:
+		SI strategieOff == 0:
+			cible = crea plus faible 
+		SI strategieOff == 1:
+			cible = crea plus forte
+		SI strategieOff == 2:
+			cible = aleatoire
+		SI strategieOff == 3:
+			cible = aleatoire
+SI cible != vide:
+	attaque cible
+
+					Sélection d'un soin
+listeSoins = soins
+on vérifie le type, la cible, l'util, les conditions
+soin = aleat in listeSoins
+if soin.tIncant == 0:
+	creature + soin.effets
+elif soin.tIncant > 0:
+	tIncantRestant = soin.tIncant
+	sortIncant = soin
+
+					Soin
+creature + soin.effets
+
+					Sélection d'une attaque
+listeAttaques = attaques
+on vérifie le type, la cible, l'util, les conditions
+attaque = aleat in listeAttaques
+if attaque.tIncant == 0:
+	cible + attaque.effets
+elif attaque.tIncant > 0:
+	tIncantRestant = attaque.tIncant
+	sortIncant = attaque
+
+					Attaque
+esquive = False
+if univers.reglages.autoriserEsquive == True && attaque.esquive == True:
+	if randint(1,20) <= creature.caracteristiques['adresse']: esquive = True
+if esquive = False:
+	creature + attaque.effets
+if creature.pv <= 0:
+	on enlève la créature des enCombatAvec des autres créatures
+	on supprime la créature de la liste des créatures
+	on modifie la créature dans la région pour qu'elle ne soit plus qu'un cadavre
+	
+		
+
+
+--------------------------------------------------------TODO--------------------------------------------
+- modifier les interactions de l'inventaire pour gérer les quantités d'objets	------------------
+- vérifier qu'un objet n'est pas équipé lorsqu'on le supprime. ------------
+- modifier les effets d'ajouts d'objets pour gérer les quantités --------------
+- ajouter les hostilités envers le personnage dans la classe personnage -------------
+- ajouter les effets d'ajouts et de retraits d'hostilités (peut-être faire une fonction pour rassembler actions et hostilites) ------------
+- gérer la quantité d'objet possédé dans la condition poss ----------------
+- vérifier que l'effet d'ajout d'objets fonctionne bien ----------------
+- ajouter objets Quete() et Objectif() --------------
+- ajouter système de vérification des quêtes et des objectifs --------------
+- ajouter système d'heure et les vérifications à faire à chaque nouvelle heure ----------------
+- ajouter la vérification qu'une quête est achevée dans les conditions --------------
+- ajouter gestion d'un id d'emplacement dans la condition in --------------
+- ajouter un || pour les objectifs ----------------
+- ajouter lieu et heure au système de vérification des objectifs -------------
+- ajouter quantite pour les objectifs de type parler et entrer -----------------
+- ajouter un système de # pour les objectifs -----------------------
+- ajouter un système de # pour les interdictions ---------------------
+- ajouter un système de # pour les conditions -----------------
+- ajouter un système de # pour les textes -------------------
+- ajouter la classe Portail -----------------
+- ajouter les objets, les créatures et les portails se trouvant dans les régions --------------------
+- modifier les actions ramasser et jeter pour qu'elles modifient la région. --------------------
+- ajouter l'action cacher ------------------------
+- tester les actions ramasser, jeter et cacher ---------------------
+- ajouter l'action fouiller ----------------------
+- tester l'action fouiller ---------------------
+- ajouter l'action troquer -------------------------
+- ajouter l'action fuite pour le joueur ---------------------
+- ajouter l'action fuite pour les créatures -------------------
+- gérer la rencontre avec une créature et le combat ------------------------
+- ajouter l'action fouiller un monstre ------------------------
+- modifier les interactions pour en empêcher certaines en combats ----------------
+- ajouter l'effet de modification des emplacements ------------------------------
+- ajouter VerifierUtilObjet et UtilObjet ---------------------------
+- permettre la personnalisation des caractéristiques pour chaque jet et leur maximum ------------------------
+- ajouter le malusFuite des créatures en combat avec le joueur ----------------------------
+- ajouter la gestion des hostilites dans les rencontres -----------------------
+- ajouter système de dialogue avec les pnjs ---------------------
+- ajouter la commande dépouiller une créature-------------------------
+- ajouter un système de variable dans les textes -----------------------
+- ajouter textes pour les attaques --------------------
+- ajouter une class dictionary modifiée pour mieux controler les caracteristiques ------------------
+- ajouter texte pour les dommages sur le personnage ------------------------------
+- ajouter texte pour les dommages sur les créatures------------------------------------
+- ajouter texte pour tous les buffs sur les personnages ET créatures ----------------------------
+- régler bug pour les créatures hostil 7 ----------------------
+- ajouter esquive -------------------------
+- ajouter texte pour l'esquive -------------------
+- ajouter texte pour les fuites ----------------------
+- tester fuite du joueur ---------------------------
+- ajouter texte pour les morts -------------------------
+- tester temps d'incant ---------------------------
+- ajouter texte pour les lancements d'incant -----------------
+- ajouter texte pour les attaques ratées ---------------------------
+- ajouter stratégie défensive -------------------------
+- rendre possible de rompre une incantation d'attaque selon la stratégie défensive ----------------------------
+- tester les soins -----------------------------
+- gérer effets sur créatures
+- gérer les états des créatures
+- gérer les attaques du joueur
+- gérer système de niveau/expérience
+- gérer corruption
+- tester le système de rencontre et de combat
+- tester l'action troquer
+
+
+
+
+119
